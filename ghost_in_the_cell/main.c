@@ -65,6 +65,89 @@ typedef struct  s_game_state
 */
 
 /*
+** PROTOTYPES < START
+*/
+t_troop         create_troop();
+void            destroy_troop(t_troop to_destroy);
+t_troop         *malloc_troop_tab(int size);
+t_troop         copy_troop(t_troop from);
+void            set_troops_tab(t_troop **tab, int owner, int id_to, int size);
+void            free_troop_tab(t_troop *to_free, int size);
+t_factory       create_target();
+void            destroy_target(t_factory to_destroy);
+t_factory       *malloc_target_tab(int size);
+void            free_target_tab(t_factory *to_free, int size);
+t_link          create_link();
+void            destroy_link(t_link to_destroy);
+t_link          *malloc_link_tab(int size);
+void            free_link_tab(t_link *to_free, int size);
+t_factory       create_factory(int link_count);
+void            destroy_factory(t_factory to_destroy, int link_count);
+t_factory       *malloc_factory_tab(int size);
+void            free_factory_tab(t_factory *to_free, int size);
+t_distress_call create_distress_call(int id_from);
+void            destroy_distress_call(t_distress_call to_destroy);
+t_distress_call *malloc_distress_call(int id_from);
+void            free_distress_call(t_distress_call *to_free);
+t_game_state    create_game_state();
+void            destroy_game_state(t_game_state to_destroy);
+t_game_state    *malloc_game_state();
+void            free_game_state(t_game_state *to_free);
+t_factory       copy_factory(t_factory src);
+t_link          copy_link(t_link src);
+void            print_link(t_link src);
+void            print_target(t_factory src);
+void            print_factory(t_factory src);
+void            print_troop(t_troop src);
+t_owner         check_owner(int id);
+int             is_valid_target(t_factory src);
+int             all_targets_valid(t_factory *src, int target_count);
+int             is_valid_link(t_link src);
+int             all_links_valid(t_link *src, int link_count);
+int             is_valid_factory(t_factory src, int link_count);
+int             all_factories_valid();
+int             is_valid_troop(t_troop src);
+int             all_troops_valid();
+int             all_datas_valid();
+t_owner         set_owner(int owner, t_factory factory);
+void            set_links();
+void            set_targets();
+int		        ft_strlen(char *src);
+char	        *ft_strnew(int len);
+char	        *ft_strdup(char *src);
+char	        *ft_strjoin(char *str1, char *str2);
+void	        ft_str_add_suffix(char **str, char *suffix);
+int	            ft_nbrlen(long long int nbr, int base_len);
+char			*ft_itoa_base(long long int nbr, char *base);
+char		    *ft_itoa(long long int nbr);
+void            move(int src, int dst, int troops);
+void            bomb(int src, int dst);
+void            increase(int src);
+void            wait(void);
+int             get_dist(int id_from, int id_to);
+int             is_own_factory(t_factory factory);
+int             get_own_factories();
+int             is_neutral_factory(t_factory factory);
+int             get_neutral_factories();
+int             is_opponent_factory(t_factory factory);
+int             get_opponent_factories();
+int             get_onway_troops(int owner, int id_to);
+int             get_onway_troops_nb(int owner, int id_to);
+int             get_closest_own_factory(int target_id);
+int             get_closest_neutral_factory(int target_id);
+int             get_closest_opponent_factory(int target_id);
+int             get_prod_until_arrival(int id_from, int id_to);
+int             turtle_half_secured();
+int             turtle_conquer_neutral(int target_id);
+int             turtle_conquer_opponent(int target_id);
+int             turtle_defense();
+int             turtle_conquer();
+int             turtle_start();
+/*
+** PROTOTYPES < END
+*/
+
+/*
 ** GLOBALS < START
 */
 t_game_state    *game_state = NULL;
@@ -108,6 +191,36 @@ t_troop     *malloc_troop_tab(int size)
         troop_index++;
     }
     return (result);
+}
+
+t_troop     copy_troop(t_troop from)
+{
+    t_troop result;
+
+    result.id_from = from.id_from;
+    result.id_to = from.id_to;
+    result.nb = from.nb;
+    result.owner = from.owner;
+    result.time_to_arrive = from.time_to_arrive;
+    return (result);
+}
+
+void        set_troops_tab(t_troop **tab, int owner, int id_to, int size)
+{
+    int tab_index;
+    int troop_index;
+
+    tab_index = 0;
+    troop_index = 0;
+    while (troop_index < game_state->troops_count && tab_index < size)
+    {
+        if (game_state->troops[troop_index].id_to == id_to && game_state->troops[troop_index].owner == owner)
+        {
+            (*tab)[tab_index] = copy_troop(game_state->troops[troop_index]);
+            tab_index++;
+        }
+        troop_index++;
+    }
 }
 
 void        free_troop_tab(t_troop *to_free, int size)
@@ -262,6 +375,40 @@ void        free_factory_tab(t_factory *to_free, int size)
         destroy_factory(to_free[factory_index], (size - 1));
         factory_index++;
     }
+    free(to_free);
+}
+
+t_distress_call create_distress_call(int id_from)
+{
+    t_distress_call result;
+
+    result.id_from = id_from;
+    result.total_troops = get_onway_troops(-1, id_from);
+    result.troops = malloc_troop_tab(result.total_troops);
+    set_troops_tab(&result.troops, -1, id_from, result.total_troops);
+    result.total_troops_nb = get_onway_troops_nb(-1, id_from);
+    return (result);
+}
+
+void            destroy_distress_call(t_distress_call to_destroy)
+{
+    free_troop_tab(to_destroy.troops, to_destroy.total_troops);
+}
+
+t_distress_call *malloc_distress_call(int id_from)
+{
+    t_distress_call *result;
+
+    result = (t_distress_call *)malloc(sizeof(t_distress_call));
+    if (result == NULL)
+        return (NULL);
+    *result = create_distress_call(id_from);
+    return (result);
+}
+
+void            free_distress_call(t_distress_call *to_free)
+{
+    destroy_distress_call(*to_free);
     free(to_free);
 }
 
@@ -1082,7 +1229,7 @@ int turtle_conquer()
     {
         if (factory_index % 2 != 0 && game_state->factories[factory_index].owner == me && get_onway_troops_nb(-1, factory_index) >
         game_state->factories[factory_index].troops)
-            // result += distress_call(factory_index);
+            //add_distress_call(factory_index);
             ;
         else if (factory_index % 2 != 0 && game_state->factories[factory_index].owner == neutral)
             result += turtle_conquer_neutral(factory_index);
